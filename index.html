@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Car Balance — Decision Dashboard</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Inter:wght@400;500;600;700&display=swap');
+  :root{
+    --canvas:#F5F5F1;--surface:#FFFFFF;--ink:#1B2430;--muted:#6A7280;--line:#E5E4DD;
+    --primary:#12655B;--primary-soft:#E4EFEC;
+    --tag-gas:#2A6FB0;--tag-hybrid:#1F9E77;--tag-rugged:#C46A2A;--tag-larger:#7A5AA8;
+    --shadow:0 1px 2px rgba(27,36,48,.06),0 8px 24px rgba(27,36,48,.05);
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--canvas);color:var(--ink);font-family:'Inter',system-ui,-apple-system,Segoe UI,Roboto,sans-serif;line-height:1.5;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:1200px;margin:0 auto;padding:26px 18px 72px}
+  header.top{margin-bottom:22px}
+  .eyebrow{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--primary);font-weight:600;margin-bottom:8px}
+  h1{font-family:'Fraunces',Georgia,serif;font-weight:600;font-size:clamp(26px,3.4vw,38px);line-height:1.05;margin:0 0 10px;letter-spacing:-.01em}
+  .lede{color:var(--muted);max-width:66ch;font-size:14.5px}
+  .lede b{color:var(--ink);font-weight:600}
+  .panel{background:var(--surface);border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow);padding:18px 20px;margin-bottom:20px}
+  .panel h2{font-family:'Fraunces',Georgia,serif;font-weight:600;font-size:19px;margin:0 0 4px}
+  .panel .sub{color:var(--muted);font-size:13px;margin:0 0 15px}
+  .section-num{font-size:12px;font-weight:700;color:var(--primary);letter-spacing:.1em;margin-right:8px}
+  .weights{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:13px 24px}
+  .wrow label{display:flex;justify-content:space-between;font-size:13px;font-weight:500;margin-bottom:5px}
+  .wrow .val{color:var(--primary);font-weight:700;font-variant-numeric:tabular-nums}
+  input[type=range]{width:100%;accent-color:var(--primary);height:22px;cursor:pointer}
+  .wtools{display:flex;align-items:center;gap:14px;margin-top:14px;flex-wrap:wrap}
+  button.reset{font:inherit;font-size:13px;font-weight:600;color:var(--primary);background:var(--primary-soft);border:1px solid #cfe2dd;border-radius:8px;padding:8px 14px;cursor:pointer}
+  button.reset:hover{background:#d8ebe6}
+  .wtools .note{font-size:12.5px;color:var(--muted)}
+  .scroll{overflow-x:auto;border-radius:10px;border:1px solid var(--line)}
+  table{border-collapse:collapse;width:100%;font-size:13px;min-width:960px}
+  thead th{position:sticky;top:0;z-index:2;background:#fbfbf9;text-align:center;font-weight:600;color:var(--ink);padding:9px 7px;border-bottom:2px solid var(--line);white-space:nowrap;cursor:pointer;user-select:none;font-size:12px}
+  /* compact car column; Overall stays as the visible second data column */
+  th.lbl,td.car{width:122px;min-width:122px;max-width:122px;white-space:normal}
+  thead th.lbl{text-align:left}
+  thead th:hover{background:var(--primary-soft)}
+  thead th .arrow{color:var(--primary);font-size:10px;margin-left:2px}
+  thead th.balcol{background:#d4ebe4;border-left:2px solid #bfe0d8;border-right:2px solid #bfe0d8;color:#0d5249}
+  tbody td{padding:6px 7px;text-align:center;border-bottom:1px solid #f0efe9;font-variant-numeric:tabular-nums}
+  tbody tr:hover{background:#fafaf7}
+  td.rank{color:var(--muted);font-weight:600;width:30px}
+  th.rankh{width:30px;min-width:30px;cursor:default;color:var(--muted)}
+  th.rankh:hover{background:#fbfbf9}
+  td.car{text-align:left;font-weight:600}
+  .tag{display:inline-block;font-size:9.5px;font-weight:700;letter-spacing:.03em;padding:2px 7px;border-radius:20px;margin-left:7px;color:#fff;vertical-align:middle}
+  .tag.Gas{background:var(--tag-gas)}.tag.Hybrid{background:var(--tag-hybrid)}.tag.Rugged{background:var(--tag-rugged)}.tag.Larger{background:var(--tag-larger)}
+  .cell{display:inline-block;min-width:32px;padding:4px 0;border-radius:6px;font-weight:600}
+  td.balcell{background:#f4faf8;border-left:2px solid #e0eeea;border-right:2px solid #e0eeea}
+  td.balcell .bnum{font-weight:800;font-size:19px;color:var(--primary)}
+  .balbar{height:5px;border-radius:3px;background:var(--primary);margin:3px auto 0;max-width:60px}
+  tr.top1{background:var(--primary-soft)!important}
+  tr.top1 td.car{color:var(--primary)}
+  td.car .imglinks{display:block;margin-top:3px;font-weight:500;font-size:10.5px;white-space:nowrap}
+  td.car .imglinks a{color:var(--muted);text-decoration:none;border-bottom:1px dotted #c7c6bf}
+  td.car .imglinks a:hover{color:var(--primary)}
+  td.car .imglinks a.grn{color:#3B9C4B;border-bottom-color:#9ed3a6}
+  td.car .imglinks .dot{color:#cfcdc4;margin:0 4px}
+  .legend{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--muted);margin-top:13px;flex-wrap:wrap}
+  .swatch{display:inline-block;width:70px;height:10px;border-radius:3px;background:linear-gradient(90deg,#e9b3b0,#eed7a6,#b6ddc2)}
+  .exp-head{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:4px}
+  select{font:inherit;font-size:14px;font-weight:600;color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:8px 12px;background:#fff;cursor:pointer}
+  .bars{margin-top:14px;display:flex;flex-direction:column;gap:5px}
+  .bar-row{display:grid;grid-template-columns:158px 1fr;align-items:center;gap:12px}
+  .bar-name{font-size:12.5px;font-weight:600;text-align:right;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .bar-track{position:relative;background:#f0efe9;border-radius:6px;height:23px}
+  .bar-fill{height:100%;border-radius:6px;display:flex;align-items:center;justify-content:flex-end;padding-right:9px;font-size:12px;font-weight:700;color:#12332e;min-width:36px;transition:width .35s ease}
+  .bar-raw{font-size:11px;color:var(--muted);margin-left:8px;white-space:nowrap}
+  .budget-head{display:flex;align-items:center;gap:16px;flex-wrap:wrap;margin-bottom:6px}
+  .budget-val{font-family:'Fraunces',Georgia,serif;font-size:26px;font-weight:600;color:var(--primary);min-width:120px}
+  #budget{flex:1;min-width:200px;accent-color:var(--primary);height:24px}
+  .foot{font-size:12.5px;color:var(--muted);margin-top:9px}
+  .ladder-wrap{margin-top:16px;border-top:1px solid var(--line);padding-top:14px}
+  .ladder{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+  .chip{background:#faf9f6;border:1px solid var(--line);border-radius:10px;padding:7px 12px;text-align:center;min-width:104px}
+  .chip .yr{font-weight:700;font-size:13px;color:var(--primary)}
+  .chip .pr{font-size:12.5px;color:var(--ink);margin-top:2px;font-variant-numeric:tabular-nums}
+  :focus-visible{outline:2px solid var(--primary);outline-offset:2px;border-radius:4px}
+  @media(max-width:560px){.bar-row{grid-template-columns:118px 1fr}.bar-name{font-size:11px}}
+  @media(prefers-reduced-motion:reduce){.bar-fill{transition:none}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div class="eyebrow">Buying smart, not maximizing</div>
+    <h1>The balance view</h1>
+    <p class="lede">42 sensible, CarPlay-equipped cars scored 1–10 on nine traits, blended into one <b>Overall Score</b> — the highlighted green column right after the car names — using weights you control. Move a slider — the whole board re-sorts. Click any column heading to sort by it (again to flip low↔high). Under each car name, tap <b>Ext</b>, <b>Int</b>, or <b>Green</b> to see real photos on Google. Scores are directional and made to be edited.</p>
+  </header>
+
+  <section class="panel">
+    <h2><span class="section-num">01</span>Set the priorities</h2>
+    <p class="sub">Pre-set toward what matters most to you — reliability, value, comfort. Drag to taste; shares rebalance automatically.</p>
+    <div class="weights" id="weights"></div>
+    <div class="wtools">
+      <button class="reset" id="reset" type="button">Reset to our priorities</button>
+      <span class="note">Ranking uses each metric's share of the total.</span>
+    </div>
+  </section>
+
+  <section class="panel">
+    <h2><span class="section-num">02</span>The matrix</h2>
+    <p class="sub">The <b>Overall</b> score (green column) is the blended ranking; the columns to its right are the nine inputs. Click any heading to sort; greener = stronger.</p>
+    <div class="scroll">
+      <table id="matrix"><thead id="mhead"></thead><tbody id="mbody"></tbody></table>
+    </div>
+    <div class="legend"><span>Weak</span><span class="swatch"></span><span>Strong</span>
+      <span style="margin-left:auto"><span class="tag Gas">Gas</span><span class="tag Hybrid">Hybrid</span><span class="tag Rugged">Rugged</span><span class="tag Larger">Larger</span></span></div>
+  </section>
+
+  <section class="panel">
+    <h2><span class="section-num">03</span>What year does your budget buy?</h2>
+    <p class="sub">Slide your budget and see the newest model year you could realistically get for each car, with reasonable miles. Higher bar = newer.</p>
+    <div class="budget-head">
+      <span class="budget-val" id="budgetVal">$25,000</span>
+      <input type="range" id="budget" min="15000" max="35000" step="500" value="25000" aria-label="Budget">
+    </div>
+    <div class="bars" id="budgetBars"></div>
+    <p class="foot">Estimate based on each model's ~$25k anchor year and how fast it depreciates — approximate, and capped at 2025 for the used market.</p>
+    <div class="ladder-wrap">
+      <div class="exp-head" style="margin-top:6px"><p class="sub" style="margin:0">Or look up one model's estimated price for each year:</p><select id="modelPick"></select></div>
+      <div class="ladder" id="priceLadder"></div>
+    </div>
+  </section>
+
+  <section class="panel">
+    <h2><span class="section-num">04</span>One metric at a time</h2>
+    <div class="exp-head">
+      <p class="sub" style="margin:0">Rank all 42 on a single variable:</p>
+      <select id="metricPick"></select>
+    </div>
+    <div class="bars" id="bars"></div>
+    <p class="foot" id="metricFoot"></p>
+  </section>
+
+  <p class="foot">Hard-number traits (fuel cost on your ~18,200-mi commute, safety, depreciation, recency, CarPlay) are well grounded; softer ones (comfort, screen) are review-based judgment. Tell me what to re-score, re-weight, or add.</p>
+</div>
+
+<script>
+const metrics=[
+  {key:'reliability',label:'Reliability & longevity',short:'Reliab.'},
+  {key:'value',label:'Value (fits $25k budget)',short:'Value'},
+  {key:'fuel',label:'Fuel efficiency',short:'Fuel'},
+  {key:'comfort',label:'Comfort & ride',short:'Comfort'},
+  {key:'maint',label:'Low maintenance cost',short:'Maint.'},
+  {key:'safety',label:'Safety',short:'Safety'},
+  {key:'retention',label:'Value retention',short:'Resale'},
+  {key:'recency',label:'Recency (newest year)',short:'Recency'},
+  {key:'tech',label:'Tech & screen',short:'Tech'}
+];
+const defaultWeights={reliability:20,value:15,comfort:12,maint:11,safety:10,recency:9,fuel:8,tech:8,retention:7};
+let weights={...defaultWeights};
+
+const cars=[
+ {name:'Toyota RAV4',tag:'Gas',reliability:10,value:5.5,fuel:8.5,comfort:7,maint:9,safety:9,retention:10,recency:5,tech:5.5,fuelAnnual:1875,anchorYr:2020,price:'$25–30k',screen:'7–8"',dpy:2900,fy:2019},
+ {name:'Toyota RAV4 Hybrid',tag:'Hybrid',reliability:10,value:4.5,fuel:10,comfort:7.5,maint:9,safety:9,retention:10,recency:5,tech:5.5,fuelAnnual:1675,anchorYr:2020,price:'$29–33k',screen:'7–8"',dpy:3000,fy:2019},
+ {name:'Honda CR-V',tag:'Gas',reliability:9,value:6,fuel:8.5,comfort:8,maint:8.5,safety:9.5,retention:8.5,recency:6.5,tech:5.5,fuelAnnual:1875,anchorYr:2021,price:'$23–26k',screen:'7"',dpy:2500,fy:2017},
+ {name:'Honda CR-V Hybrid',tag:'Hybrid',reliability:9,value:5,fuel:8.5,comfort:8,maint:8.5,safety:9.5,retention:8.5,recency:6.5,tech:6,fuelAnnual:1875,anchorYr:2021,price:'$27–30k',screen:'7–9"',dpy:2600,fy:2020},
+ {name:'Nissan Rogue',tag:'Gas',reliability:6.5,value:8.5,fuel:8.5,comfort:8.5,maint:7.5,safety:9,retention:5.5,recency:8,tech:7,fuelAnnual:1930,anchorYr:2022,price:'$18–22k',screen:'8–9"',dpy:1900,fy:2018},
+ {name:'Mazda CX-5',tag:'Gas',reliability:9,value:7.5,fuel:7.5,comfort:7.5,maint:8,safety:9.5,retention:8,recency:6.5,tech:6.5,fuelAnnual:2055,anchorYr:2021,price:'$18–24k',screen:'10.25" (knob)',dpy:2300,fy:2018},
+ {name:'Subaru Forester',tag:'Gas',reliability:8.5,value:7,fuel:8.5,comfort:8,maint:7.5,safety:10,retention:9,recency:6.5,tech:6.5,fuelAnnual:1930,anchorYr:2021,price:'$18–24k',screen:'6.5–8"',dpy:2500,fy:2017},
+ {name:'Subaru Outback',tag:'Gas',reliability:8.5,value:6.5,fuel:8.5,comfort:9,maint:7.5,safety:10,retention:8.5,recency:6.5,tech:9,fuelAnnual:1930,anchorYr:2021,price:'$20–25k',screen:'11.6"',dpy:2500,fy:2020},
+ {name:'Subaru Crosstrek',tag:'Gas',reliability:8.5,value:7.5,fuel:8.5,comfort:7.5,maint:7.5,safety:10,retention:9,recency:6.5,tech:6.5,fuelAnnual:1875,anchorYr:2021,price:'$18–24k',screen:'6.5–8"',dpy:2400,fy:2018},
+ {name:'Hyundai Tucson',tag:'Gas',reliability:7.5,value:8,fuel:7,comfort:8,maint:8.5,safety:9,retention:6.5,recency:8,tech:8.5,fuelAnnual:2125,anchorYr:2022,price:'$18–24k',screen:'8–10.25"',dpy:2100,fy:2017},
+ {name:'Hyundai Tucson Hybrid',tag:'Hybrid',reliability:7.5,value:6.5,fuel:10,comfort:8,maint:8.5,safety:9,retention:7,recency:8,tech:8.5,fuelAnnual:1675,anchorYr:2022,price:'$24–28k',screen:'10.25"',dpy:2300,fy:2022},
+ {name:'Kia Sportage',tag:'Gas',reliability:7.5,value:8,fuel:6,comfort:8,maint:8.5,safety:9,retention:6.5,recency:8,tech:9,fuelAnnual:2275,anchorYr:2022,price:'$18–24k',screen:'8–12.3"',dpy:2100,fy:2017},
+ {name:'Toyota Corolla Cross',tag:'Gas',reliability:9.5,value:7.5,fuel:7.5,comfort:7,maint:9,safety:9,retention:9,recency:8,tech:7,fuelAnnual:1990,anchorYr:2022,price:'$22–25k',screen:'8"',dpy:2700,fy:2022},
+ {name:'Ford Escape',tag:'Gas',reliability:6,value:8.5,fuel:8.5,comfort:7.5,maint:7,safety:8,retention:4.5,recency:8.5,tech:7,fuelAnnual:1930,anchorYr:2023,price:'$17–23k',screen:'8"',dpy:1900,fy:2020},
+ {name:'Ford Escape Hybrid',tag:'Hybrid',reliability:6.5,value:6.5,fuel:9.5,comfort:7.5,maint:7,safety:8,retention:5,recency:8,tech:7,fuelAnnual:1720,anchorYr:2022,price:'$20–25k',screen:'8"',dpy:2000,fy:2020},
+ {name:'Chevy Equinox',tag:'Gas',reliability:6,value:8.5,fuel:7.5,comfort:7.5,maint:7,safety:8,retention:4,recency:9,tech:7,fuelAnnual:2055,anchorYr:2023,price:'$17–23k',screen:'7–8"',dpy:1700,fy:2018},
+ {name:'Mitsubishi Outlander',tag:'Gas',reliability:7,value:8,fuel:7.5,comfort:8,maint:8,safety:9,retention:5.5,recency:8,tech:7.5,fuelAnnual:2055,anchorYr:2022,price:'$22–25k',screen:'8–9"',dpy:2000,fy:2022},
+ {name:'Kia Seltos',tag:'Gas',reliability:7.5,value:8.5,fuel:7,comfort:7,maint:8.5,safety:8.5,retention:6.5,recency:8,tech:7.5,fuelAnnual:2125,anchorYr:2022,price:'$17–23k',screen:'8–10.25"',dpy:2000,fy:2021},
+ {name:'Hyundai Kona',tag:'Gas',reliability:7.5,value:8.5,fuel:7.5,comfort:7,maint:8.5,safety:8.5,retention:6,recency:8,tech:7,fuelAnnual:2055,anchorYr:2022,price:'$15–22k',screen:'8"',dpy:1900,fy:2018},
+ {name:'Chevy Trax',tag:'Gas',reliability:6,value:9.5,fuel:7.5,comfort:7,maint:7,safety:8,retention:4.5,recency:10,tech:8.5,fuelAnnual:1990,anchorYr:2024,price:'$19–23k',screen:'8–11"',dpy:1700,fy:2024},
+ {name:'VW Tiguan',tag:'Gas',reliability:5.5,value:8,fuel:6,comfort:8,maint:5,safety:8.5,retention:4,recency:8,tech:7,fuelAnnual:2275,anchorYr:2022,price:'$16–23k',screen:'6.5–8"',dpy:1900,fy:2018},
+ {name:'Ford Bronco Sport',tag:'Rugged',reliability:6,value:6.5,fuel:6,comfort:7,maint:6.5,safety:8,retention:6.5,recency:8,tech:7.5,fuelAnnual:2275,anchorYr:2022,price:'$20–25k',screen:'8"',dpy:2200,fy:2021},
+ {name:'Jeep Compass',tag:'Rugged',reliability:5,value:8.5,fuel:7.5,comfort:6.5,maint:6,safety:8,retention:5,recency:8,tech:6.5,fuelAnnual:2055,anchorYr:2023,price:'$16–23k',screen:'8.4–10.1"',dpy:1800,fy:2018},
+ {name:'Jeep Renegade',tag:'Rugged',reliability:5,value:9,fuel:7.5,comfort:6.5,maint:6,safety:8,retention:5,recency:8,tech:6,fuelAnnual:2195,anchorYr:2023,price:'$14–21k',screen:'7–8.4"',dpy:1800,fy:2019},
+ {name:'Jeep Cherokee',tag:'Rugged',reliability:5.5,value:7,fuel:6.5,comfort:7,maint:6,safety:8,retention:5,recency:6.5,tech:6.5,fuelAnnual:2195,anchorYr:2021,price:'$18–23k',screen:'7–8.4"',dpy:1800,fy:2019},
+ {name:'Jeep Wrangler',tag:'Rugged',reliability:5.5,value:4,fuel:3,comfort:4,maint:6,safety:6,retention:9,recency:5,tech:6,fuelAnnual:2770,anchorYr:2020,price:'$25k+',screen:'7–8.4"',dpy:3000,fy:2018},
+ {name:'Toyota Venza',tag:'Hybrid',reliability:9.5,value:4,fuel:9.5,comfort:8.5,maint:9,safety:9,retention:8,recency:6.5,tech:8,fuelAnnual:1720,anchorYr:2021,price:'$28–32k',screen:'8–12.3"',dpy:2600,fy:2021},
+ {name:'Mazda CX-9',tag:'Larger',reliability:8.5,value:5,fuel:4.5,comfort:8.5,maint:8,safety:9,retention:7.5,recency:5,tech:7,fuelAnnual:2450,anchorYr:2020,price:'$24–30k',screen:'9–10.25"',dpy:2300,fy:2018},
+ {name:'Honda Pilot',tag:'Larger',reliability:9,value:4.5,fuel:4.5,comfort:8.5,maint:8.5,safety:9.5,retention:8,recency:5,tech:7.5,fuelAnnual:2550,anchorYr:2020,price:'$28–34k',screen:'8"',dpy:2500,fy:2019},
+ {name:'Kia Telluride',tag:'Larger',reliability:7.5,value:3.5,fuel:4.5,comfort:9,maint:8.5,safety:9.5,retention:9,recency:5,tech:9,fuelAnnual:2450,anchorYr:2020,price:'$32–40k',screen:'10.25–12.3"',dpy:2800,fy:2020},
+ {name:'Toyota Highlander',tag:'Larger',reliability:10,value:3.5,fuel:4.5,comfort:9,maint:8.5,safety:9.5,retention:9.5,recency:5,tech:8,fuelAnnual:2400,anchorYr:2020,price:'$30–37k',screen:'8–12.3"',dpy:2900,fy:2020},
+ {name:'Mazda CX-30',tag:'Gas',reliability:9,value:8,fuel:8,comfort:7.5,maint:8,safety:9.5,retention:7.5,recency:8,tech:6.5,fuelAnnual:1930,anchorYr:2022,price:'$18–23k',screen:'8.8"',dpy:2100,fy:2020},
+ {name:'Mazda CX-50',tag:'Rugged',reliability:8.5,value:6.5,fuel:7,comfort:8,maint:8,safety:9.5,retention:7.5,recency:7,tech:7.5,fuelAnnual:2055,anchorYr:2023,price:'$26–30k',screen:'10.25"',dpy:2400,fy:2023},
+ {name:'Chevy Trailblazer',tag:'Gas',reliability:6,value:9,fuel:8,comfort:7,maint:7,safety:8,retention:4.5,recency:9,tech:8,fuelAnnual:1930,anchorYr:2023,price:'$17–22k',screen:'8–11"',dpy:1700,fy:2021},
+ {name:'Kia Niro Hybrid',tag:'Hybrid',reliability:8,value:8,fuel:10,comfort:7,maint:8.5,safety:9,retention:6.5,recency:8,tech:7,fuelAnnual:1300,anchorYr:2022,price:'$18–24k',screen:'8–10.25"',dpy:1900,fy:2018},
+ {name:'Hyundai Santa Fe',tag:'Larger',reliability:7.5,value:6.5,fuel:6,comfort:8.5,maint:8.5,safety:9,retention:6.5,recency:7,tech:8.5,fuelAnnual:2275,anchorYr:2021,price:'$22–28k',screen:'8–10.25"',dpy:2300,fy:2019},
+ {name:'Kia Sorento',tag:'Larger',reliability:8,value:6,fuel:6.5,comfort:8.5,maint:8.5,safety:9,retention:7,recency:6.5,tech:8.5,fuelAnnual:2195,anchorYr:2021,price:'$23–28k',screen:'8–12.3"',dpy:2400,fy:2021},
+ {name:'Nissan Murano',tag:'Larger',reliability:6.5,value:6.5,fuel:6,comfort:9.5,maint:7.5,safety:9,retention:5,recency:6.5,tech:6.5,fuelAnnual:2275,anchorYr:2021,price:'$18–25k',screen:'8"',dpy:1900,fy:2019},
+ {name:'Subaru Ascent',tag:'Larger',reliability:8,value:6,fuel:5.5,comfort:8.5,maint:7.5,safety:10,retention:8,recency:6.5,tech:7,fuelAnnual:2275,anchorYr:2020,price:'$25–31k',screen:'8"',dpy:2400,fy:2019},
+ {name:'Hyundai Palisade',tag:'Larger',reliability:7.5,value:4,fuel:5,comfort:9,maint:8.5,safety:9.5,retention:8.5,recency:5,tech:8.5,fuelAnnual:2275,anchorYr:2020,price:'$31–38k',screen:'10.25–12.3"',dpy:2700,fy:2020},
+ {name:'Honda HR-V',tag:'Gas',reliability:8.5,value:8.5,fuel:8,comfort:7,maint:8.5,safety:9,retention:7.5,recency:8,tech:6.5,fuelAnnual:1930,anchorYr:2022,price:'$16–22k',screen:'7–9"',dpy:1800,fy:2019},
+ {name:'Acura RDX',tag:'Larger',reliability:8.5,value:4.5,fuel:5.5,comfort:8.5,maint:7.5,safety:9,retention:6.5,recency:6,tech:7,fuelAnnual:2450,anchorYr:2020,price:'$28–33k',screen:'10.2"',dpy:2500,fy:2019}
+];
+
+const rawFor={
+  fuel:c=>'$'+c.fuelAnnual.toLocaleString()+'/yr',
+  recency:c=>"'"+String(c.anchorYr).slice(2)+" @ $25k",
+  value:c=>c.price,
+  tech:c=>c.screen
+};
+function scoreColor(s){const t=Math.max(0,Math.min(1,(s-1)/9));const hue=t*130;return`hsl(${hue.toFixed(0)},58%,${(90-t*6).toFixed(0)}%)`;}
+const totalWeight=()=>metrics.reduce((a,m)=>a+weights[m.key],0);
+function balance(c){const tw=totalWeight()||1;return metrics.reduce((a,m)=>a+c[m.key]*weights[m.key],0)/tw;}
+const d1=n=>Number(n).toFixed(1);
+const gimg=q=>'https://www.google.com/search?tbm=isch&q='+encodeURIComponent(q);
+function imgLinks(c){
+  const ext=gimg(c.name+' '+c.anchorYr+' exterior');
+  const intr=gimg(c.name+' '+c.anchorYr+' interior');
+  const grn=gimg(c.name+' green');
+  return `<span class="imglinks"><a href="${ext}" target="_blank" rel="noopener">Ext</a><span class="dot">·</span><a href="${intr}" target="_blank" rel="noopener">Int</a><span class="dot">·</span><a class="grn" href="${grn}" target="_blank" rel="noopener">Green</a></span>`;
+}
+let sortKey='balance',sortDir=-1;
+
+function buildWeights(){
+  const box=document.getElementById('weights');box.innerHTML='';
+  metrics.forEach(m=>{
+    const d=document.createElement('div');d.className='wrow';
+    d.innerHTML=`<label for="w_${m.key}">${m.label}<span class="val" id="v_${m.key}"></span></label><input type="range" id="w_${m.key}" min="0" max="25" step="1" value="${weights[m.key]}" aria-label="${m.label} weight">`;
+    box.appendChild(d);
+    d.querySelector('input').addEventListener('input',e=>{weights[m.key]=+e.target.value;refreshWeightLabels();renderMatrix();});
+  });
+  refreshWeightLabels();
+}
+function refreshWeightLabels(){const tw=totalWeight()||1;metrics.forEach(m=>{document.getElementById('v_'+m.key).textContent=Math.round(weights[m.key]/tw*100)+'%';});}
+
+function renderMatrix(){
+  const head=document.getElementById('mhead'),body=document.getElementById('mbody');
+  const arrow=k=>sortKey===k?`<span class="arrow">${sortDir<0?'▼':'▲'}</span>`:'';
+  let h='<tr><th class="rankh">#</th><th class="lbl" data-k="name">Car type'+arrow('name')+'</th>';
+  h+=`<th class="balcol" data-k="balance">Overall${arrow('balance')}</th>`;
+  metrics.forEach(m=>h+=`<th data-k="${m.key}" title="${m.label}">${m.short}${arrow(m.key)}</th>`);
+  h+='</tr>';head.innerHTML=h;
+  head.querySelectorAll('th').forEach(th=>th.addEventListener('click',()=>{const k=th.dataset.k;if(!k)return;if(sortKey===k){sortDir*=-1;}else{sortKey=k;sortDir=(k==='name')?1:-1;}renderMatrix();}));
+  const rows=cars.map(c=>({c,bal:balance(c)}));
+  rows.sort((a,b)=>{let av,bv;if(sortKey==='balance'){av=a.bal;bv=b.bal;}else if(sortKey==='name'){av=a.c.name;bv=b.c.name;}else{av=a.c[sortKey];bv=b.c[sortKey];}if(av<bv)return -1*sortDir;if(av>bv)return 1*sortDir;return 0;});
+  body.innerHTML=rows.map((r,i)=>{
+    const c=r.c;
+    const cells=metrics.map(m=>`<td><span class="cell" style="background:${scoreColor(c[m.key])}">${d1(c[m.key])}</span></td>`).join('');
+    const isTop=(sortKey==='balance'&&sortDir<0&&i===0);
+    return`<tr class="${isTop?'top1':''}"><td class="rank">${i+1}</td><td class="car">${c.name}<span class="tag ${c.tag}">${c.tag}</span>${imgLinks(c)}</td><td class="balcell"><span class="bnum">${d1(r.bal)}</span><div class="balbar" style="width:${Math.round(r.bal/10*100)}%"></div></td>${cells}</tr>`;
+  }).join('');
+}
+
+function estYear(c,budget){
+  let y=c.anchorYr+(budget-25000)/c.dpy;
+  y=Math.round(y);
+  return Math.max(c.fy,Math.min(2025,y));
+}
+function yearColor(y){const t=Math.max(0,Math.min(1,(y-2016)/(2025-2016)));const hue=t*130;return`hsl(${hue.toFixed(0)},58%,${(88-t*4).toFixed(0)}%)`;}
+function renderBudget(){
+  const budget=+document.getElementById('budget').value;
+  document.getElementById('budgetVal').textContent='$'+budget.toLocaleString();
+  const rows=cars.map(c=>({c,y:estYear(c,budget)})).sort((a,b)=>b.y-a.y||a.c.name.localeCompare(b.c.name));
+  const minY=2016,maxY=2025;
+  document.getElementById('budgetBars').innerHTML=rows.map(r=>{
+    const pct=((r.y-minY)/(maxY-minY))*100;
+    return`<div class="bar-row"><div class="bar-name" title="${r.c.name}">${r.c.name}</div><div class="bar-track"><div class="bar-fill" style="width:${Math.max(pct,8)}%;background:${yearColor(r.y)}">${r.y}</div><span class="bar-raw">${r.c.price} typical</span></div></div>`;
+  }).join('');
+}
+
+function buildPicker(){
+  const sel=document.getElementById('metricPick');
+  sel.innerHTML=metrics.map(m=>`<option value="${m.key}">${m.label}</option>`).join('');
+  sel.addEventListener('change',()=>renderBars(sel.value));
+}
+function renderBars(key){
+  const sorted=[...cars].sort((a,b)=>b[key]-a[key]);
+  document.getElementById('bars').innerHTML=sorted.map(c=>{
+    const raw=rawFor[key]?`<span class="bar-raw">${rawFor[key](c)}</span>`:'';
+    return`<div class="bar-row"><div class="bar-name" title="${c.name}">${c.name}</div><div class="bar-track"><div class="bar-fill" style="width:${c[key]/10*100}%;background:${scoreColor(c[key])}">${d1(c[key])}</div>${raw}</div></div>`;
+  }).join('');
+  const foots={
+    fuel:'From estimated annual gas on your ~18,200-mi highway commute at $3.50/gal — higher = cheaper to run.',
+    recency:'Higher = newer model year you can get near $25k. Fast-depreciating cars score higher.',
+    value:'Higher = more car / lower miles for a $25k budget. Shows the used price band.',
+    retention:'Higher = holds value better over time (matters less if you keep it for life).',
+    reliability:'Brand + model dependability and how long these tend to last.',
+    tech:'Higher = bigger, easier-to-read screen. All cars have Apple CarPlay.',
+    comfort:'Ride plushness and quietness from professional reviews — directional.',
+    maint:'Higher = lower expected routine maintenance/repair cost.',
+    safety:'Higher = stronger IIHS/NHTSA crash and safety-tech ratings.'
+  };
+  document.getElementById('metricFoot').textContent=foots[key]||'';
+}
+
+document.getElementById('reset').addEventListener('click',()=>{weights={...defaultWeights};buildWeights();renderMatrix();});
+document.getElementById('budget').addEventListener('input',renderBudget);
+
+function estPriceRange(c,y){
+  const mid=25000+(y-c.anchorYr)*c.dpy;
+  const lo=Math.max(6000,mid*0.9),hi=Math.max(7000,mid*1.1);
+  const r=v=>Math.round(v/500)*500;return[r(lo),r(hi)];
+}
+const kfmt=v=>'$'+(v/1000).toFixed(v%1000?1:0)+'k';
+function buildModelPick(){
+  const sel=document.getElementById('modelPick');
+  sel.innerHTML=cars.map((c,i)=>`<option value="${i}">${c.name}</option>`).join('');
+  sel.addEventListener('change',()=>renderLadder(+sel.value));
+}
+function renderLadder(id){
+  const c=cars[id];if(!c)return;const out=[];
+  for(let y=c.fy;y<=2025;y++){const[lo,hi]=estPriceRange(c,y);out.push(`<div class="chip"><div class="yr">${y}</div><div class="pr">${kfmt(lo)}–${kfmt(hi)}</div></div>`);}
+  document.getElementById('priceLadder').innerHTML=out.join('');
+}
+buildWeights();renderMatrix();renderBudget();buildModelPick();renderLadder(0);buildPicker();renderBars('reliability');
+</script>
+</body>
+</html>
